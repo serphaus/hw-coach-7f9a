@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Homework Coach — Family Homework Helper</title>
+  <meta name="description" content="Snap homework photos or screenshots for step-by-step coaching, interactive 1st–3rd grade math & reading tools, and parent cheat-sheets." />
+  <meta name="theme-color" content="#4F46E5" />
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Homework Coach" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <img src="icon.svg" alt="Homework Coach" class="brand-icon" />
+        <div>
+          <h1 class="brand-title">Homework Coach</h1>
+          <p class="brand-subtitle">Snap, Coach &amp; Learn Together</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <select id="gradeSelect" class="grade-pill" aria-label="Select Grade Level">
+          <option value="1st Grade (Age 6-7)">1st Grade</option>
+          <option value="2nd Grade (Age 7-8)" selected>2nd Grade (Age 8)</option>
+          <option value="3rd Grade (Age 8-9)">3rd Grade</option>
+          <option value="4th+ Grade">4th+ Grade</option>
+        </select>
+
+        <button class="icon-btn" id="openSettingsBtn" title="Setup & Share">
+          <span class="status-dot" id="apiStatusDot"></span>
+          <span id="apiStatusLabel">Setup</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-container">
+
+    <!-- TAB 1: SNAP & COACH -->
+    <section id="tab-snap" class="tab-panel active">
+      <div class="card">
+        <h2 class="card-title">📸 Snap or Upload Homework</h2>
+        <p class="card-desc">
+          Take a picture of a paper worksheet, pick a screenshot from your iPhone, or type any homework question below. Instead of just giving the answer, you'll get a 30-second parent refresher + step-by-step hints for the kids!
+        </p>
+
+        <!-- Hidden File Inputs for iPhone Camera vs Photo Library/Screenshot -->
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
+        <input type="file" id="galleryInput" accept="image/*" hidden />
+
+        <div class="upload-zone" id="dropZone">
+          <div class="upload-buttons-grid">
+            <button type="button" class="snap-btn primary" id="takePhotoBtn">
+              <span class="btn-emoji">📷</span>
+              <span>Take Homework Photo</span>
+              <span class="btn-sub">Uses iPhone / Tablet Camera</span>
+            </button>
+
+            <button type="button" class="snap-btn secondary" id="uploadGalleryBtn">
+              <span class="btn-emoji">🖼️</span>
+              <span>Upload Screenshot / Photo</span>
+              <span class="btn-sub">From Photo Library or Computer</span>
+            </button>
+          </div>
+          <p class="paste-hint">💡 On a computer? You can also drag &amp; drop an image here or press <strong>Ctrl+V / Cmd+V</strong> to paste a screenshot!</p>
+
+          <!-- Image Preview -->
+          <div class="image-preview-wrap" id="imagePreviewWrap">
+            <img id="imagePreview" src="" alt="Uploaded homework preview" />
+            <button type="button" class="remove-img-btn" id="removeImgBtn">✕ Remove Photo</button>
+          </div>
+        </div>
+
+        <!-- Question / Extra Note Input -->
+        <div class="question-input-group">
+          <textarea
+            id="questionInput"
+            class="question-textarea"
+            placeholder="Optional: Type a homework question directly, or add a note about the photo (e.g., 'Help us with question #3' or 'How do I explain number bonds?')"
+          ></textarea>
+
+          <div class="action-row">
+            <button type="button" class="analyze-btn" id="analyzeBtn">
+              <span>✨ Coach Us Step-by-Step</span>
+            </button>
+          </div>
+
+          <!-- Built-in Instant Demo Samples -->
+          <div class="sample-chips">
+            <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700;">Try an instant example:</span>
+            <button type="button" class="sample-chip" data-sample="make10">🧮 "Make a 10" to solve 8 + 6</button>
+            <button type="button" class="sample-chip" data-sample="wordproblem">🍎 2nd Grade Word Problem</button>
+            <button type="button" class="sample-chip" data-sample="phonics">📖 Reading: Silent 'E' &amp; Vowel Teams</button>
+            <button type="button" class="sample-chip" data-sample="regrouping">🔢 Subtraction with Regrouping (42 - 17)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- COACHING RESULT AREA -->
+      <div class="card coaching-result" id="coachingResultCard">
+        <div class="topic-banner">
+          <div>
+            <span class="topic-badge" id="resSubjectBadge">Math</span>
+            <strong id="resTopicTitle" style="margin-left:8px; font-size:1.02rem;">Addition with Number Bonds</strong>
+          </div>
+          <button type="button" class="speak-btn" id="speakAllParentBtn">🔊 Read Refresher</button>
+        </div>
+
+        <!-- For Mom / Helper Box -->
+        <div class="parent-coach-box">
+          <h4>👩‍👧 30-Second Helper Guide (How Schools Teach This)</h4>
+          <p id="resParentGuide"></p>
+        </div>
+
+        <!-- Interactive Step-by-Step Kid Hints -->
+        <h3 style="font-size:1rem; margin: 0 0 10px;">🪜 Step-by-Step Coaching Hints (Reveal one by one with the kids!)</h3>
+        <div class="steps-container" id="resStepsContainer"></div>
+
+        <!-- Hidden Final Answer Check -->
+        <div class="final-answer-box">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <strong style="color:#065F46;">✅ Final Answer Check (After they try!)</strong>
+            <button type="button" class="reveal-step-btn" id="toggleFinalAnswerBtn" style="background:#FFFFFF; color:#059669; border-color:#6EE7B7;">
+              👀 Tap to Reveal Final Answer
+            </button>
+          </div>
+          <div class="final-answer-content" id="resFinalAnswer"></div>
+        </div>
+
+        <!-- Follow-Up & Practice Problem Bar -->
+        <div class="followup-bar">
+          <input
+            type="text"
+            id="followupInput"
+            class="followup-input"
+            placeholder="Still stuck? Ask a follow-up (e.g., 'Explain Step 2 simpler' or 'What about #4?')"
+          />
+          <button type="button" class="icon-btn" id="sendFollowupBtn" style="background:var(--primary); color:#FFF; border-color:var(--primary);">
+            Ask Follow-Up
+          </button>
+          <button type="button" class="icon-btn" id="similarProblemBtn" style="background:var(--purple-light); color:var(--purple); border-color:#DDD6FE;">
+            🎲 Give Us 1 Practice Problem Like This
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Homework Scans History -->
+      <div class="card" id="historyCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 class="card-title" style="font-size:1rem; margin:0;">🕒 Recent Homework Sessions</h3>
+          <button type="button" class="speak-btn" id="clearHistoryBtn">Clear</button>
+        </div>
+        <div id="historyList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: INTERACTIVE MATH LAB (100% OFFLINE / NO AI NEEDED) -->
+    <section id="tab-math" class="tab-panel">
+      <div class="sub-tabs">
+        <button type="button" class="sub-tab-btn active" data-mathtool="tenframes">🔵 Ten-Frames &amp; Number Bonds</button>
+        <button type="button" class="sub-tab-btn" data-mathtool="placevalue">🧱 Place Value Blocks (100s/10s/1s)</button>
+        <button type="button" class="sub-tab-btn" data-mathtool="quiz">🎯 Practice Quiz Game</button>
+      </div>
+
+      <!-- Math Tool 1: Ten-Frames & Number Bonds -->
+      <div class="card math-subpanel" id="math-tenframes">
+        <h2 class="card-title">🔵 Interactive Ten-Frames &amp; Number Bond</h2>
+        <p class="card-desc">
+          1st and 2nd grade worksheets love <strong>Ten-Frames</strong> and <strong>Number Bonds</strong>! Tap the boxes or use the +/- buttons to show how two numbers combine—or click <strong>"✨ Slide to Make a 10"</strong> to show the kids why <code style="background:#EEF2FF; padding:2px 6px; border-radius:4px;">8 + 5</code> is the same as <code style="background:#EEF2FF; padding:2px 6px; border-radius:4px;">10 + 3 = 13</code>!
+        </p>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:#F8FAFC; padding:12px 16px; border-radius:12px; border:1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong style="color:#2563EB;">Blue Part:</strong>
+            <button type="button" class="pv-btn" id="tfBlueMinus">−</button>
+            <span id="tfBlueCount" style="font-weight:800; font-size:1.2rem; min-width:24px; text-align:center;">8</span>
+            <button type="button" class="pv-btn" id="tfBluePlus">+</button>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong style="color:#D97706;">Gold Part:</strong>
+            <button type="button" class="pv-btn" id="tfAmberMinus">−</button>
+            <span id="tfAmberCount" style="font-weight:800; font-size:1.2rem; min-width:24px; text-align:center;">5</span>
+            <button type="button" class="pv-btn" id="tfAmberPlus">+</button>
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="reveal-step-btn" id="makeTenBtn">✨ Slide Counters to "Make a 10"</button>
+            <button type="button" class="speak-btn" id="resetTfBtn">Reset</button>
+          </div>
+        </div>
+
+        <div class="ten-frames-wrapper">
+          <div class="ten-frame-box">
+            <div class="ten-frame-title">
+              <span>First Ten-Frame</span>
+              <span id="frame1Status">8 / 10</span>
+            </div>
+            <div class="ten-frame-grid" id="tenFrame1"></div>
+          </div>
+
+          <div class="ten-frame-box">
+            <div class="ten-frame-title">
+              <span>Second Ten-Frame</span>
+              <span id="frame2Status">5 / 10</span>
+            </div>
+            <div class="ten-frame-grid" id="tenFrame2"></div>
+          </div>
+        </div>
+
+        <!-- Dynamic Number Bond Visual -->
+        <div class="number-bond-diagram">
+          <div class="bond-circle whole">
+            <span class="bond-label">Whole</span>
+            <span id="bondWholeVal">13</span>
+          </div>
+          <div class="bond-lines">
+            <span>╱</span>
+            <span>╲</span>
+          </div>
+          <div class="bond-parts-row">
+            <div class="bond-circle part-a">
+              <span class="bond-label">Part</span>
+              <span id="bondPartAVal">8</span>
+            </div>
+            <div class="bond-circle part-b">
+              <span class="bond-label">Part</span>
+              <span id="bondPartBVal">5</span>
+            </div>
+          </div>
+          <p id="bondEquationText" style="margin:12px 0 0; font-weight:800; font-size:1.1rem; color:var(--text);">
+            8 + 5 = 13 &nbsp;|&nbsp; 13 − 8 = 5 &nbsp;|&nbsp; 13 − 5 = 8
+          </p>
+        </div>
+      </div>
+
+      <!-- Math Tool 2: Place Value Base-10 Blocks -->
+      <div class="card math-subpanel" id="math-placevalue" style="display:none;">
+        <h2 class="card-title">🧱 Place Value Blocks (Hundreds, Tens, Ones)</h2>
+        <p class="card-desc">
+          Help the kids see what 2-digit and 3-digit numbers actually look like! When you have 10 Ones, tap <strong>"Bundle 10 Ones → 1 Ten"</strong> to show how carrying/regrouping works.
+        </p>
+
+        <div style="text-align:center; background:var(--primary-light); border:2px solid #C7D2FE; border-radius:14px; padding:14px; margin-bottom:14px;">
+          <div style="font-size:2.1rem; font-weight:900; color:var(--primary);" id="pvTotalNumber">134</div>
+          <div style="font-size:0.95rem; font-weight:700; color:var(--text-muted);" id="pvExpandedForm">Expanded Form: 100 + 30 + 4 = 134</div>
+        </div>
+
+        <div class="pv-columns">
+          <div class="pv-col">
+            <strong style="color:#6D28D9;">Hundreds (100)</strong>
+            <div class="pv-controls">
+              <button type="button" class="pv-btn" data-pv="h-minus">−</button>
+              <span id="pvHCount" style="font-weight:800; font-size:1.2rem; line-height:34px;">1</span>
+              <button type="button" class="pv-btn" data-pv="h-plus">+</button>
+            </div>
+            <div class="pv-visual-area" id="pvHundredsArea"></div>
+          </div>
+
+          <div class="pv-col">
+            <strong style="color:#1D4ED8;">Tens (10)</strong>
+            <div class="pv-controls">
+              <button type="button" class="pv-btn" data-pv="t-minus">−</button>
+              <span id="pvTCount" style="font-weight:800; font-size:1.2rem; line-height:34px;">3</span>
+              <button type="button" class="pv-btn" data-pv="t-plus">+</button>
+            </div>
+            <div class="pv-visual-area" id="pvTensArea"></div>
+          </div>
+
+          <div class="pv-col">
+            <strong style="color:#B45309;">Ones (1)</strong>
+            <div class="pv-controls">
+              <button type="button" class="pv-btn" data-pv="o-minus">−</button>
+              <span id="pvOCount" style="font-weight:800; font-size:1.2rem; line-height:34px;">4</span>
+              <button type="button" class="pv-btn" data-pv="o-plus">+</button>
+            </div>
+            <div class="pv-visual-area" id="pvOnesArea"></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+          <button type="button" class="reveal-step-btn" id="bundleOnesBtn">✨ Bundle 10 Ones → 1 Ten</button>
+          <button type="button" class="reveal-step-btn" id="unbundleTenBtn">🔨 Break 1 Ten → 10 Ones (Borrowing)</button>
+        </div>
+      </div>
+
+      <!-- Math Tool 3: Offline Practice Quiz -->
+      <div class="card math-subpanel" id="math-quiz" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <h2 class="card-title" style="margin:0;">🎯 8-Year-Old Math Practice Game</h2>
+          <span class="topic-badge" style="background:var(--secondary);" id="quizStreakBadge">⭐ Streak: 0</span>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+          <select id="quizTypeSelect" class="grade-pill">
+            <option value="add">Addition (within 20 &amp; 100)</option>
+            <option value="sub">Subtraction (within 20 &amp; 100)</option>
+            <option value="missing">Missing Number (8 + ? = 14)</option>
+            <option value="word">Mini Word Problems</option>
+          </select>
+          <button type="button" class="speak-btn" id="newQuizQuestionBtn">🔄 New Question</button>
+        </div>
+
+        <div style="background:#F8FAFC; border:2px solid var(--border); border-radius:16px; padding:22px; text-align:center; margin-bottom:14px;">
+          <div id="quizQuestionText" style="font-size:1.5rem; font-weight:800; margin-bottom:16px;">8 + 7 = ?</div>
+          <div style="display:flex; gap:10px; justify-content:center; max-width:320px; margin:0 auto;">
+            <input type="number" id="quizAnswerInput" class="followup-input" style="text-align:center; font-size:1.3rem; font-weight:800; min-width:100px;" placeholder="?" />
+            <button type="button" class="analyze-btn" id="checkQuizBtn" style="padding:10px 18px;">Check!</button>
+          </div>
+          <p id="quizHintText" style="margin:14px 0 0; font-size:0.92rem; color:var(--text-muted);"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: READING, PHONICS & SIGHT WORDS -->
+    <section id="tab-reading" class="tab-panel">
+      <div class="card">
+        <h2 class="card-title">🗣️ Sound-It-Out &amp; Read-Aloud Helper</h2>
+        <p class="card-desc">
+          Stuck on a tricky word or sentence in a reading book? Type it below! Tap any word to hear it read aloud at normal speed or <strong>🐢 Slow Sound-Out Speed</strong>. Common phonics patterns (<span class="phonics-highlight-digraph">sh, ch, th, wh, ph, ck</span> and <span class="phonics-highlight-vowel">vowel teams like ea, oa, ai, ee</span>) are automatically highlighted!
+        </p>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input
+            type="text"
+            id="phonicsInput"
+            class="followup-input"
+            value="The bright green frog leaped over the smooth boat."
+            placeholder="Type any word or sentence here..."
+          />
+          <button type="button" class="icon-btn" id="speakNormalBtn" style="background:var(--primary); color:#FFF;">🔊 Normal</button>
+          <button type="button" class="icon-btn" id="speakSlowBtn" style="background:var(--amber); color:#FFF;">🐢 Slow Coach</button>
+        </div>
+
+        <div class="phonics-display" id="phonicsWordPills"></div>
+        <p style="font-size:0.8rem; color:var(--text-muted); text-align:center; margin:0;">
+          👆 Tap any single word card above to hear just that word sounded out slowly!
+        </p>
+      </div>
+
+      <!-- Sight Words & Spelling Practice -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <h2 class="card-title" style="margin:0;">🐝 1st–3rd Grade Sight Words &amp; Spelling Bee</h2>
+          <select id="sightGradeSelect" class="grade-pill">
+            <option value="grade1">1st Grade Words</option>
+            <option value="grade2" selected>2nd Grade Words (Age 8)</option>
+            <option value="grade3">3rd Grade Words</option>
+          </select>
+        </div>
+        <p class="card-desc">
+          Tap <strong>"🔊 Hear Word &amp; Sentence"</strong> so the child can practice spelling it, or flip through the flashcards together!
+        </p>
+
+        <div style="background:linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%); border:2px solid #C7D2FE; border-radius:16px; padding:22px; text-align:center;">
+          <div id="sightWordCardText" style="font-size:2.4rem; font-weight:900; color:var(--primary); letter-spacing:0.04em; margin-bottom:8px;">
+            because
+          </div>
+          <p id="sightWordSentence" style="font-size:0.98rem; color:var(--text-muted); margin:0 0 16px;">
+            "We stayed inside <strong>because</strong> it was raining."
+          </p>
+
+          <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:14px;">
+            <button type="button" class="reveal-step-btn" id="hearSightWordBtn">🔊 Hear Word &amp; Sentence</button>
+            <button type="button" class="speak-btn" id="hideSightWordBtn">🙈 Hide Word for Spelling Test</button>
+            <button type="button" class="speak-btn" id="nextSightWordBtn">➡️ Next Word</button>
+          </div>
+
+          <!-- Spelling Input Check -->
+          <div id="spellingTestBox" style="display:none; max-width:340px; margin:12px auto 0; gap:8px;">
+            <input type="text" id="spellingAttemptInput" class="followup-input" placeholder="Kid types the word here..." autocomplete="off" autocapitalize="none" />
+            <button type="button" class="analyze-btn" id="checkSpellingBtn" style="padding:10px 16px;">Check</button>
+          </div>
+          <p id="spellingFeedback" style="margin:10px 0 0; font-weight:700;"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: PARENT CHEAT-SHEETS ("HOW SCHOOLS TEACH IT TODAY") -->
+    <section id="tab-guides" class="tab-panel">
+      <div class="card">
+        <h2 class="card-title">💡 "How Schools Teach It Today" Cheat-Sheets</h2>
+        <p class="card-desc">
+          Ever look at a 1st or 2nd grade worksheet and think, <em>"Why don't they just add it the normal way?"</em> Here are quick 30-second translations so you can feel 100% confident without needing ChatGPT!
+        </p>
+
+        <div class="guide-card">
+          <h3>1. Number Bonds (Whole – Part – Part)</h3>
+          <p style="margin:0 0 8px; font-size:0.92rem;">
+            <strong>What it is:</strong> Three circles connected by lines. One big circle is the <strong>Whole (Total)</strong>, and two smaller circles are the <strong>Parts</strong> that add up to it.
+          </p>
+          <div class="guide-example">   ( 12 )  ← Whole
+   /    \
+ ( 7 )  ( 5 ) ← Parts (because 7 + 5 = 12, and 12 - 7 = 5)</div>
+          <p style="margin:0; font-size:0.88rem; color:var(--text-muted);">
+            <strong>What to say to the kids:</strong> "If the two small circles are friends, they team up to make the big circle! If we know the big circle (12) and one friend (7), count up from 7 to 12 to find the missing friend!"
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <h3>2. The "Make a 10" Strategy (e.g., 8 + 6)</h3>
+          <p style="margin:0 0 8px; font-size:0.92rem;">
+            <strong>Why schools teach it:</strong> Adding to 10 in your head (<code style="background:#F1F5F9; padding:2px 4px;">10 + 4 = 14</code>) is much easier for an 8-year-old than memorizing <code style="background:#F1F5F9; padding:2px 4px;">8 + 6</code>.
+          </p>
+          <div class="guide-example">Problem: 8 + 6 = ?
+Step 1: How many more does 8 need to become 10? (It needs 2!)
+Step 2: Break 6 into (2 and 4).
+Step 3: Give the 2 to the 8 → Now we have 10 + 4 = 14!</div>
+          <p style="margin:0; font-size:0.88rem; color:var(--text-muted);">
+            <strong>Tip:</strong> Switch to the <strong>🧮 Math Lab</strong> tab at the bottom to show them this live with counters!
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <h3>3. Subtraction with "Regrouping" (Borrowing)</h3>
+          <p style="margin:0 0 8px; font-size:0.92rem;">
+            <strong>What changed:</strong> Schools now call "borrowing" <strong>Regrouping</strong> or <strong>Unbundling a Ten</strong> so kids understand *why* a little "1" appears next to the ones digit.
+          </p>
+          <div class="guide-example">Problem: 42 − 17
+"More on the floor? Go next door and get 10 more!"
+• We have 2 Ones, so we can't take away 7 Ones yet.
+• Trade 1 of our 4 Tens for 10 Ones.
+• Now we have 3 Tens and 12 Ones!
+• 12 − 7 = 5 Ones, and 3 − 1 = 2 Tens → Answer: 25!</div>
+        </div>
+
+        <div class="guide-card">
+          <h3>4. Tape Diagrams / Bar Models (Word Problems)</h3>
+          <p style="margin:0 0 8px; font-size:0.92rem;">
+            <strong>What it is:</strong> Drawing a rectangular bar split into boxes to see if a word problem is asking for the <strong>Total (Add)</strong> or a <strong>Missing Part (Subtract)</strong>.
+          </p>
+          <div class="guide-example">[     8 Red Apples     |   ? Green Apples   ]
+[              15 Apples in All             ]
+→ Since 15 is the whole bar, we subtract: 15 − 8 = 7!</div>
+        </div>
+
+        <div class="guide-card">
+          <h3>5. Phonics: "Magic E" &amp; "Two Vowels Go Walking"</h3>
+          <p style="margin:0; font-size:0.92rem;">
+            • <strong>Bossy / Magic E:</strong> An silent <code style="background:#F1F5F9; padding:2px 4px;">e</code> at the end of a word jumps back and makes the vowel say its own alphabet name (<em>cap → cape, kit → kite, hop → hope</em>).<br/>
+            • <strong>Vowel Teams (ea, oa, ai, ee):</strong> <em>"When two vowels go walking, the first one does the talking (says its name)!"</em> — like <strong>b<u>oa</u>t</strong> (says O), <strong>r<u>ai</u>n</strong> (says A), <strong>t<u>ea</u>m</strong> (says E).
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav" aria-label="Primary Navigation">
+    <div class="bottom-nav-inner">
+      <button type="button" class="nav-item active" data-tab="tab-snap">
+        <span class="nav-icon">📸</span>
+        <span>Snap &amp; Coach</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-math">
+        <span class="nav-icon">🧮</span>
+        <span>Math Lab</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-reading">
+        <span class="nav-icon">📖</span>
+        <span>Reading</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="tab-guides">
+        <span class="nav-icon">💡</span>
+        <span>How to Teach</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Settings, Free API Key & Handoff Modal -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 style="margin:0; font-size:1.2rem;">⚙️ Setup &amp; Handoff to Daughter</h2>
+        <button type="button" class="icon-btn" id="closeSettingsBtn">✕ Close</button>
+      </div>
+
+      <div style="background:var(--primary-light); border:1px solid #C7D2FE; border-radius:12px; padding:14px; margin-bottom:16px;">
+        <h3 style="margin:0 0 6px; font-size:0.96rem; color:var(--primary);">1. Connect Free Google Gemini Key ($0/month)</h3>
+        <p style="margin:0 0 10px; font-size:0.84rem; color:var(--text-muted);">
+          This powers photo &amp; screenshot analysis using Google's free Gemini tier (up to 1,500 homework scans/day for $0). Get a free key in 2 clicks at
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:700;">aistudio.google.com/app/apikey</a>.
+        </p>
+        <div style="display:flex; gap:8px;">
+          <input
+            type="password"
+            id="apiKeyInput"
+            class="followup-input"
+            placeholder="Paste Gemini API key (starts with AIza...)"
+          />
+          <button type="button" class="icon-btn" id="saveApiKeyBtn" style="background:var(--primary); color:#FFF; border-color:var(--primary);">
+            Save Key
+          </button>
+        </div>
+        <p id="apiKeyStatusMsg" style="margin:8px 0 0; font-size:0.8rem; font-weight:700;"></p>
+      </div>
+
+      <!-- Magic Link Generator for Daughter -->
+      <div style="background:var(--secondary-light); border:1px solid #A7F3D0; border-radius:12px; padding:14px; margin-bottom:16px;">
+        <h3 style="margin:0 0 6px; font-size:0.96rem; color:#065F46;">2. Send Protected "Auto-Setup Link" to Your Daughter</h3>
+        <p style="margin:0 0 10px; font-size:0.84rem; color:#065F46;">
+          Optional: Enter a 4-digit <strong>Family PIN</strong> below to lock the link. When your daughter opens the link on her iPhone or desktop, she enters that PIN once and her app is set up forever!
+        </p>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <input
+            type="text"
+            id="familyPinInput"
+            class="followup-input"
+            maxlength="8"
+            placeholder="Optional Family PIN (e.g. 2018)"
+            style="max-width:220px;"
+          />
+        </div>
+        <button type="button" class="reveal-step-btn" id="copyMagicLinkBtn" style="width:100%; background:#059669; color:#FFF; border:none; padding:10px;">
+          🔗 Copy Magic Link for Daughter
+        </button>
+        <p id="magicLinkCopiedMsg" style="margin:6px 0 0; font-size:0.8rem; color:#065F46; font-weight:700; display:none;"></p>
+      </div>
+
+      <!-- iPhone & Desktop Install Instructions -->
+      <div style="border:1px solid var(--border); border-radius:12px; padding:14px;">
+        <h3 style="margin:0 0 8px; font-size:0.96rem;">📱 How She Saves It on Her iPhone &amp; Desktop</h3>
+        <ul style="margin:0; padding-left:18px; font-size:0.85rem; color:var(--text-muted); display:flex; flex-direction:column; gap:6px;">
+          <li><strong>On her iPhone:</strong> Open the link in <strong>Safari</strong> → tap the <strong>Share</strong> icon (square with arrow pointing up) at the bottom → tap <strong>"Add to Home Screen"</strong>. It now sits on her iPhone home screen like a real app!</li>
+          <li><strong>On her Desktop:</strong> Open the link in Chrome, Edge, or Safari and click the <strong>Install App</strong> icon in the address bar (or bookmark it).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

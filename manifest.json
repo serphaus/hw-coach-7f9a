@@ -1,0 +1,18 @@
+{
+  "name": "Homework Coach — Family Helper",
+  "short_name": "Homework Coach",
+  "description": "Snap homework photos for step-by-step coaching, interactive 1st–3rd grade math & reading tools, and parent cheat-sheets.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
